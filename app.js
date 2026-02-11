@@ -1,4 +1,13 @@
-const API_URL = "/api/temperature";
+const NASA_BASE_URL = "https://psg.gsfc.nasa.gov/apps/mars/";
+const AIR_PARAM = "Tair";
+const SURFACE_PARAM = "Tsurf";
+
+// Значения совпадают с дефолтной локацией на сайте NASA Mars Explorer.
+const NASA_DEFAULT_LOCATION = {
+  name: "Syrtis Major",
+  lat: 9.9,
+  lon: 70,
+};
 
 const temperatureEl = document.getElementById("temperature");
 const surfaceTempEl = document.getElementById("surface-temp");
@@ -11,82 +20,98 @@ const refreshBtn = document.getElementById("refresh");
 const formatTemp = (value) =>
   Number.isFinite(value) ? `${value.toFixed(0)} °C` : "—";
 
-const formatDateTime = (value) => {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+const nearestIndex = (arr, target) => {
+  let idx = 0;
+  let minDiff = Number.POSITIVE_INFINITY;
 
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
-
-function applyCooldown(nextAllowedRefreshAt) {
-  const nextDate = new Date(nextAllowedRefreshAt);
-  if (Number.isNaN(nextDate.getTime())) return;
-
-  const now = Date.now();
-  const remainingMs = nextDate.getTime() - now;
-
-  if (remainingMs <= 0) {
-    refreshBtn.disabled = false;
-    return;
+  for (let i = 0; i < arr.length; i += 1) {
+    const diff = Math.abs(arr[i] - target);
+    if (diff < minDiff) {
+      minDiff = diff;
+      idx = i;
+    }
   }
 
-  refreshBtn.disabled = true;
-  const remainingMinutes = Math.ceil(remainingMs / 60000);
-  statusEl.textContent += ` Следующее обновление источника через ~${remainingMinutes} мин.`;
+  return idx;
+};
 
-  window.setTimeout(() => {
-    refreshBtn.disabled = false;
-  }, remainingMs);
+function getPointValue(payload, coords) {
+  const { header, data } = payload;
+
+  if (!header || !Array.isArray(data) || data.length === 0) {
+    throw new Error("Некорректный ответ NASA");
+  }
+
+  const nlon = Number(header.nlon);
+  const lats = header.lats ?? [];
+  const lons = header.lons ?? [];
+
+  if (!Number.isFinite(nlon) || !lats.length || !lons.length) {
+    throw new Error("В ответе NASA отсутствует сетка координат");
+  }
+
+  const latIdx = nearestIndex(lats, coords.lat);
+  const lonIdx = nearestIndex(lons, coords.lon);
+  const pointIndex = latIdx * nlon + lonIdx;
+
+  return {
+    value: Number(data[pointIndex]),
+    lat: lats[latIdx],
+    lon: lons[lonIdx],
+    unit: header.unit ?? "C",
+  };
+}
+
+async function fetchParam(param) {
+  const response = await fetch(`${NASA_BASE_URL}index.php?param=${param}`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} (${param})`);
+  }
+
+  return response.json();
 }
 
 async function loadMarsTemperature() {
   refreshBtn.disabled = true;
-  statusEl.textContent = "Получаем данные с прокси…";
+  statusEl.textContent = "Получаем данные NASA…";
 
   try {
-    const response = await fetch(API_URL, { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
+    const [airPayload, surfacePayload] = await Promise.all([
+      fetchParam(AIR_PARAM),
+      fetchParam(SURFACE_PARAM),
+    ]);
 
-    const payload = await response.json();
+    const air = getPointValue(airPayload, NASA_DEFAULT_LOCATION);
+    const surface = getPointValue(surfacePayload, NASA_DEFAULT_LOCATION);
 
-    temperatureEl.textContent = formatTemp(Number(payload.temperature_c));
-    surfaceTempEl.textContent = formatTemp(Number(payload.surface_temperature_c));
-    const gridLat = Number(payload.grid_point?.lat);
-    const gridLon = Number(payload.grid_point?.lon);
-    const gridText = Number.isFinite(gridLat) && Number.isFinite(gridLon)
-      ? `${gridLat.toFixed(3)}°, ${gridLon.toFixed(0)}°`
-      : "—";
-
-    metricEl.textContent = `${payload.metric ?? "Tair"} (сеточная точка ${gridText})`;
-    sourceEl.textContent = payload.source_url ?? "—";
-    updatedEl.textContent = formatDateTime(payload.fetched_at);
+    temperatureEl.textContent = formatTemp(air.value);
+    surfaceTempEl.textContent = formatTemp(surface.value);
+    metricEl.textContent = `${AIR_PARAM} (air, 1 scale height), сетка ${air.lat.toFixed(3)}°, ${air.lon.toFixed(0)}°`;
+    sourceEl.textContent = "https://psg.gsfc.nasa.gov/apps/mars/";
+    updatedEl.textContent = new Intl.DateTimeFormat("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date());
 
     statusEl.textContent =
-      "Данные загружены через кэшируемый API (лимит обновления источника: 1 раз/час).";
-    applyCooldown(payload.next_allowed_refresh_at);
-
-    if (!refreshBtn.disabled) {
-      refreshBtn.disabled = false;
-    }
+      "Показана температура как на NASA Mars Explorer (без автообновления).";
   } catch (error) {
     statusEl.textContent =
-      "Не удалось получить температуру с API. Проверьте деплой функции /api/temperature.";
+      "Не удалось получить температуру с NASA Mars Explorer. Попробуйте позже.";
     temperatureEl.textContent = "—";
     surfaceTempEl.textContent = "—";
     metricEl.textContent = "—";
     sourceEl.textContent = "—";
     updatedEl.textContent = "—";
-    refreshBtn.disabled = false;
     console.error(error);
+  } finally {
+    refreshBtn.disabled = false;
   }
 }
 
