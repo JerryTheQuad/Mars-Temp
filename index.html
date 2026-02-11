@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Температура на Марсе</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="card">
+      <h1>Температура на Марсе</h1>
+      <p class="subtitle">Парсинг с NASA Mars Explorer (GSFC), как на сайте</p>
+
+      <section class="temperature" aria-live="polite">
+        <span id="temperature">-- °C</span>
+      </section>
+
+      <dl class="details">
+        <div>
+          <dt>Локация NASA по умолчанию</dt>
+          <dd id="location">Syrtis Major (9.9°N, 70°E)</dd>
+        </div>
+        <div>
+          <dt>Темп. поверхности</dt>
+          <dd id="surface-temp">—</dd>
+        </div>
+        <div>
+          <dt>Параметр</dt>
+          <dd id="metric">Tair (air temperature)</dd>
+        </div>
+        <div>
+          <dt>Источник</dt>
+          <dd id="source">—</dd>
+        </div>
+        <div>
+          <dt>Обновлено</dt>
+          <dd id="updated">—</dd>
+        </div>
+      </dl>
+
+      <p id="status" class="status">Загрузка…</p>
+      <button id="refresh" type="button">Обновить данные</button>
+    </main>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

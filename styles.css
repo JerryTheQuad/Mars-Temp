@@ -1,0 +1,93 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: radial-gradient(circle at top, #3d221f, #1a1211 55%, #0d0a0a);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: #f6f2ef;
+  padding: 1rem;
+}
+
+.card {
+  width: min(100%, 420px);
+  background: rgba(19, 16, 16, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 1.4rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.subtitle {
+  margin-top: 0.3rem;
+  color: #d0c1b8;
+}
+
+.temperature {
+  margin: 1.2rem 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.details {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+}
+
+.details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.details dt {
+  color: #c8bab2;
+}
+
+.details dd {
+  margin: 0;
+  text-align: right;
+}
+
+.status {
+  margin: 1rem 0;
+  min-height: 1.2em;
+  color: #e7a874;
+}
+
+button {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #261713;
+  background: linear-gradient(90deg, #efc8a7, #f09d62);
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.05);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
